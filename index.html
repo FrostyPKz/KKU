@@ -2,12 +2,13 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ศูนย์รวมมินิเกมฝึกสมอง 11 เกม</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ศูนย์รวมมินิเกมฝึกสมอง & Otago Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb); background-size: 400% 400%; animation: gradientBG 15s ease infinite; font-family: 'Kanit', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 60px; color: #4a4a4a; overflow-x: hidden; }
@@ -45,12 +46,23 @@
   #stroopWord { font-size: 60px; font-weight: 800; margin: 20px 0; text-align: center; }
   .color-btn { padding: 16px 0; border: none; border-radius: 16px; font-size: 16px; font-weight: 800; color: white; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
   .color-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
-  #camContainer { position: relative; width: 100%; max-width: 400px; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; background: #000; margin: 10px auto; }
-  #webcam, #output_canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; }
-  .cam-zone { position: absolute; top: 20%; width: 25%; height: 60%; border-radius: 12px; border: 4px solid rgba(255,255,255,0.5); z-index: 2; display: flex; align-items: center; justify-content: center; font-size: 30px; }
   .word-btn { background: #fff; border: 2px solid #1e90ff; color: #1e90ff; padding: 14px; border-radius: 16px; font-size: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
   .path-tile { background: #ced6e0; transition: background 0.2s; }
   .path-active { background: #ff4757 !important; }
+
+  /* Otago Tracker CSS */
+  .otago-container { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+  .otago-video-section { width: 100%; background: #000; border-radius: 12px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; aspect-ratio: 4/3; }
+  .otago-video-section canvas { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+  .otago-video-section video { display: none; }
+  #visibilityWarning { position: absolute; top: 10px; background: rgba(211, 47, 47, 0.9); color: white; padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; display: none; z-index: 10; }
+  .otago-info-section { background: white; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .otago-info-section select { padding: 8px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; width: 100%; outline: none; background-color: #fff; font-family: inherit; }
+  .example-img { width: 100%; max-height: 120px; background-color: #e9ecef; border-radius: 8px; object-fit: contain; border: 1px dashed #adb5bd; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 12px; }
+  .dashboard-box { background: #e3f2fd; padding: 8px; border-radius: 8px; text-align: center; transition: 0.3s; }
+  .value-display { font-size: 1.8rem; font-weight: bold; color: #1976d2; margin: 2px 0; transition: color 0.3s; }
+  .target-text { font-size: 0.9rem; color: #555; }
+  .instruction { font-size: 0.8rem; background: #fff3e0; padding: 8px; border-radius: 6px; text-align: center; }
 </style>
 </head>
 <body>
@@ -90,7 +102,7 @@
     {id:'4', ic:'🔔', t:'จดจำลำดับสี', d:'ฝึกสมาธิ กดสีตามลำดับ'},
     {id:'5', ic:'🧺', t:'แยกหมวดหมู่', d:'ฝึกตัดสินใจ ของกินหรือของใช้'},
     {id:'6', ic:'➕', t:'คณิตคิดเพลิน', d:'ฝึกการคำนวณ บวกและลบเลขง่ายๆ'},
-    {id:'7', ic:'✋', t:'AI สแกนฝ่ามือ', d:'ฝึกกายภาพ ปัดสีตามสั่ง (เปิดกล้อง)'},
+    {id:'7', ic:'🏃', t:'Otago Tracker', d:'ระบบผู้ช่วยกายภาพ (Easy Mode)'}, // <-- แก้เป็น Otago
     {id:'8', ic:'🔢', t:'เรียงเลขไว', d:'ฝึกกวาดสายตา กดเลข 1-10 ตามลำดับ'},
     {id:'9', ic:'🔎', t:'ล่าหาไอเทม', d:'หาสิ่งของเป้าหมายจากของมากมาย'},
     {id:'10', ic:'🗺️', t:'จำเส้นทาง', d:'จดจำเส้นทางที่ปรากฏและกดตาม'},
@@ -108,7 +120,8 @@
 
   function goTo(screen) {
     initAudio(); playSound('click');
-    if(typeof stopWebcam === 'function') stopWebcam();
+    if(typeof stopWebcam === 'function') stopWebcam(); // หยุดกล้องถ้าเปลี่ยนหน้า
+    
     if(screen === 'menu') {
       document.getElementById('menuScreen').classList.remove('hidden');
       document.getElementById('gameScreenTemplate').classList.add('hidden');
@@ -253,38 +266,230 @@
   }
 
   /* =====================================================
-     G7: AI มือ
+     G7: Otago Tracker (MediaPipe Pose)
   ===================================================== */
-  let g7Cam, g7Hands;
+  let otagoCam, otagoPose;
+  let g7_currentMode = "reps"; 
+  let g7_target = 20;
+  let g7_counter = 0;
+  let g7_isHoldingPose = false;
+  let g7_startTime = 0;
+  let g7_isDown = false;
+
+  function calculateAngle(a, b, c) {
+    const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+    let angle = Math.abs(radians * 180.0 / Math.PI);
+    return angle > 180.0 ? 360 - angle : angle;
+  }
+
   function initGame7() {
-    document.getElementById('gameContainer').innerHTML = `<h1>✋ AI มือ</h1><div class="hud"><div class="hud-item">แต้ม <span id="g7-s"></span></div><div class="hud-item">ชีวิต <span id="g7-l"></span></div></div><div id="g7-cmd" style="font-size:24px; color:#ff4757; font-weight:bold; margin-bottom:10px;">รอโหลด AI...</div><div id="camContainer"><video id="webcam" autoplay playsinline></video><canvas id="output_canvas"></canvas><div id="zL" class="cam-zone" style="left:5%; background:rgba(255,71,87,0.4)">🔴</div><div id="zR" class="cam-zone" style="right:5%; background:rgba(30,144,255,0.4)">🔵</div></div><div class="message-box" id="g7-msg"></div><button class="action-btn next-btn" id="g7-start">เปิดกล้อง ▶</button><button class="action-btn restart-btn" id="g7-res">เล่นใหม่ 🔄</button>`;
-    document.getElementById('g7-start').onclick = () => { playSound('click'); document.getElementById('g7-start').style.display='none'; startG7Cam(); };
-    document.getElementById('g7-res').onclick = () => { playSound('click'); document.getElementById('g7-res').style.display='none'; window.g7S=0; window.g7L=3; nextG7(); };
-    document.getElementById('g7-start').style.display = 'inline-block';
-  }
-  function startG7Cam() {
-    const vid = document.getElementById('webcam'); const cvs = document.getElementById('output_canvas'); const ctx = cvs.getContext('2d');
-    g7Hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-    g7Hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.5, minTrackingConfidence:0.5});
-    g7Hands.onResults(res => {
-      ctx.clearRect(0,0,cvs.width,cvs.height);
-      if(res.multiHandLandmarks && res.multiHandLandmarks[0] && !window.g7Lock) {
-        drawConnectors(ctx, res.multiHandLandmarks[0], HAND_CONNECTIONS, {color:'#0f0', lineWidth:2}); drawLandmarks(ctx, res.multiHandLandmarks[0], {color:'#f00', lineWidth:1, radius:2});
-        let x = res.multiHandLandmarks[0][8].x; let pick = x>0.75?'L':(x<0.25?'R':null);
-        if(pick) {
-          window.g7Lock=true;
-          if(pick===window.g7T) { playSound('correct'); window.g7S+=10; document.getElementById('g7-s').innerText=window.g7S; document.getElementById('g7-msg').innerText='✨ เยี่ยม!'; document.getElementById('z'+pick).style.background='rgba(46,213,115,0.8)'; setTimeout(nextG7,1200); }
-          else { playSound('wrong'); window.g7L--; document.getElementById('g7-l').innerText=getHearts(window.g7L); document.getElementById('z'+pick).style.background='rgba(0,0,0,0.8)'; if(window.g7L<=0) { playSound('gameover'); document.getElementById('g7-msg').innerText=`💥 จบ! ได้ ${window.g7S}`; document.getElementById('g7-res').style.display='inline-block'; } else { document.getElementById('g7-msg').innerText='❌ ผิดฝั่ง!'; setTimeout(nextG7,1500); } }
+    // Inject Otago HTML Structure
+    document.getElementById('gameContainer').innerHTML = `
+      <h1>🏃 Otago Tracker</h1>
+      <p class="sub">ระบบปรับความไวอัตโนมัติ (Easy Mode)</p>
+      
+      <div class="otago-container">
+        <div class="otago-video-section">
+            <video id="input_video" autoplay playsinline muted></video>
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <div id="visibilityWarning">⚠️ ถอยห่างจากกล้องให้เห็นเท้า/เข่า</div>
+        </div>
+
+        <div class="otago-info-section">
+            <select id="exerciseSelect">
+                <option value="5" data-type="reps" data-target="20" selected>ท่า 5: กระดกปลายเท้าขึ้น 20 ครั้ง</option>
+                <option value="6" data-type="reps" data-target="10">ท่า 6: งอเข่าเหยียดตัวขึ้น 10 ครั้ง</option>
+                <option value="7" data-type="steps" data-target="10">ท่า 7: เดินถอยหลัง 10 ก้าว</option>
+                <option value="8" data-type="reps" data-target="10">ท่า 8: เดินเป็นรูปเลขแปด 10 รอบ</option>
+                <option value="9" data-type="steps" data-target="10">ท่า 9: เดินไปด้านข้าง 10 ก้าว</option>
+                <option value="10" data-type="time" data-target="10">ท่า 10: ยืนต่อเท้าค้างไว้ 10 วิ</option>
+                <option value="11" data-type="steps" data-target="10">ท่า 11: เดินต่อเท้า 10 ก้าว</option>
+                <option value="12" data-type="time" data-target="10">ท่า 12: ยืนขาเดียวค้างไว้ 10 วิ</option>
+                <option value="13" data-type="steps" data-target="10">ท่า 13: เดินด้วยส้นเท้า 10 ก้าว</option>
+                <option value="14" data-type="steps" data-target="10">ท่า 14: เดินด้วยนิ้วเท้า 10 ก้าว</option>
+                <option value="15" data-type="steps" data-target="10">ท่า 15: เดินต่อเท้าถอยหลัง 10 ก้าว</option>
+                <option value="16" data-type="reps" data-target="10">ท่า 16: นั่งแล้วลุกขึ้นยืน 10 ครั้ง</option>
+                <option value="17" data-type="custom" data-target="0">ท่า 17: เดินขึ้น-ลงบันได</option>
+            </select>
+
+            <img id="exampleImg" class="example-img" src="pose5.jpg" alt="[รูปตัวอย่าง]">
+
+            <div class="dashboard-box" id="dashboardBox">
+                <div class="value-display" id="progressValue">0</div>
+                <div class="target-text" id="targetValue">เป้าหมาย: 20 ครั้ง</div>
+            </div>
+            
+            <div class="instruction">
+                <span id="instructionText" style="font-weight: bold; color: #d32f2f;">กำลังรอกล้อง...</span>
+            </div>
+        </div>
+      </div>
+    `;
+
+    // Re-query DOM for Otago
+    const videoElement = document.getElementById('input_video');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const selectBox = document.getElementById('exerciseSelect');
+    const imgElement = document.getElementById('exampleImg');
+    const progressValue = document.getElementById('progressValue');
+    const dashboardBox = document.getElementById('dashboardBox');
+    const warningElement = document.getElementById('visibilityWarning');
+    const instructionText = document.getElementById('instructionText');
+
+    function updateUIState() {
+        if (g7_isDown) {
+            progressValue.style.color = "#4CAF50"; 
+            dashboardBox.style.backgroundColor = "#e8f5e9";
+        } else {
+            progressValue.style.color = "#1976d2"; 
+            dashboardBox.style.backgroundColor = "#e3f2fd";
         }
-      }
+    }
+
+    selectBox.addEventListener('change', (e) => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        g7_currentMode = selectedOption.dataset.type;
+        g7_target = selectedOption.dataset.target;
+        imgElement.src = `pose${e.target.value}.jpg`; // รูปอ้างอิงของคุณ
+        
+        g7_counter = 0;
+        g7_isHoldingPose = false;
+        g7_isDown = false;
+        progressValue.innerText = "0";
+        updateUIState();
+        
+        if (g7_target > 0) {
+            document.getElementById('targetValue').innerText = `เป้าหมาย: ${g7_target} ${g7_currentMode === 'time' ? 'วินาที' : 'ครั้ง/ก้าว'}`;
+        } else {
+            document.getElementById('targetValue').innerText = `เป้าหมาย: ตามนักกายภาพฯ แนะนำ`;
+        }
     });
-    g7Cam = new Camera(vid, { onFrame: async () => { await g7Hands.send({image: vid}); }, width: 320, height: 240 });
-    g7Cam.start().then(()=>{ setTimeout(()=>{ window.g7S=0; window.g7L=3; nextG7(); }, 2000); });
+
+    function onPoseResults(results) {
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.translate(canvasElement.width, 0);
+        canvasCtx.scale(-1, 1);
+        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        if (results.poseLandmarks) {
+            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+            drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+
+            const hip = results.poseLandmarks[24];
+            const knee = results.poseLandmarks[26];
+            const leftAnkle = results.poseLandmarks[27];
+            const rightAnkle = results.poseLandmarks[28];
+            const leftHeel = results.poseLandmarks[29];
+            const rightHeel = results.poseLandmarks[30];
+            const leftToe = results.poseLandmarks[31];
+            const rightToe = results.poseLandmarks[32];
+            
+            const exerciseVal = document.getElementById('exerciseSelect').value;
+            let isBodyVisible = false;
+
+            if (exerciseVal === "5") {
+                if (leftHeel && leftToe && (leftHeel.visibility > 0.4 || rightHeel.visibility > 0.4)) {
+                    isBodyVisible = true;
+                }
+            } else if (exerciseVal === "6" || exerciseVal === "16") {
+                if (hip && knee && leftAnkle && (knee.visibility > 0.5)) {
+                    isBodyVisible = true;
+                }
+            } else {
+                if (leftAnkle && rightAnkle && (leftAnkle.visibility > 0.5)) {
+                    isBodyVisible = true;
+                }
+            }
+
+            if (!isBodyVisible) {
+                warningElement.style.display = "block";
+                instructionText.innerText = "กำลังรอกล้อง... ถอยห่างให้เห็นเป้าหมาย";
+                instructionText.style.color = "#d32f2f";
+            } else {
+                warningElement.style.display = "none";
+                instructionText.innerText = "เมื่อจังหวะถูก ตัวเลขจะเปลี่ยนเป็นสีเขียว!";
+                instructionText.style.color = "#2e7d32";
+                
+                if(g7_currentMode === "time") {
+                    if (leftAnkle && rightAnkle) {
+                        const heightDiff = Math.abs(leftAnkle.y - rightAnkle.y);
+                        if (heightDiff > 0.08) { 
+                            if (!g7_isHoldingPose) {
+                                g7_isHoldingPose = true;
+                                g7_startTime = Date.now();
+                            } else {
+                                let elapsed = Math.floor((Date.now() - g7_startTime) / 1000);
+                                if (elapsed <= g7_target) {
+                                    g7_counter = elapsed;
+                                    progressValue.innerText = g7_counter + " วิ";
+                                    g7_isDown = true; 
+                                }
+                            }
+                        } else {
+                            g7_isHoldingPose = false;
+                            g7_isDown = false;
+                        }
+                        updateUIState();
+                    }
+                } 
+                else if (g7_currentMode === "reps") {
+                    if (exerciseVal === "5") {
+                        const leftFootSize = Math.hypot(leftHeel.x - leftToe.x, leftHeel.y - leftToe.y) + 0.001;
+                        const rightFootSize = Math.hypot(rightHeel.x - rightToe.x, rightHeel.y - rightToe.y) + 0.001;
+                        const leftLift = (leftHeel.y - leftToe.y) / leftFootSize;
+                        const rightLift = (rightHeel.y - rightToe.y) / rightFootSize;
+                        
+                        if (leftLift > 0.06 || rightLift > 0.06) {
+                            g7_isDown = true; 
+                            updateUIState();
+                        } 
+                        else if (g7_isDown && leftLift < 0.03 && rightLift < 0.03) {
+                            g7_isDown = false; 
+                            updateUIState();
+                            if (g7_counter < g7_target) {
+                                g7_counter++;
+                                progressValue.innerText = g7_counter;
+                            }
+                        }
+                    } 
+                    else if (exerciseVal === "6" || exerciseVal === "16") {
+                        const targetAnkle = (rightAnkle.visibility > leftAnkle.visibility) ? rightAnkle : leftAnkle;
+                        const kneeAngle = calculateAngle(hip, knee, targetAnkle);
+                        
+                        if (kneeAngle < 145) {
+                            g7_isDown = true;
+                            updateUIState();
+                        }
+                        if (g7_isDown && kneeAngle > 160) {
+                            g7_isDown = false;
+                            updateUIState();
+                            if (g7_counter < g7_target) {
+                                g7_counter++;
+                                progressValue.innerText = g7_counter;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        canvasCtx.restore();
+    }
+
+    otagoPose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+    otagoPose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5, selfieMode: false });
+    otagoPose.onResults(onPoseResults);
+    
+    otagoCam = new Camera(videoElement, { onFrame: async () => { await otagoPose.send({image: videoElement}); }, width: 640, height: 480 });
+    otagoCam.start();
+    selectBox.dispatchEvent(new Event('change'));
   }
-  function stopWebcam() { if(g7Cam){ g7Cam.stop(); g7Cam=null; } if(g7Hands){ g7Hands.close(); g7Hands=null; } }
-  function nextG7() {
-    window.g7Lock=false; document.getElementById('zL').style.background='rgba(255,71,87,0.4)'; document.getElementById('zR').style.background='rgba(30,144,255,0.4)'; document.getElementById('g7-s').innerText=window.g7S; document.getElementById('g7-l').innerText=getHearts(window.g7L); document.getElementById('g7-msg').innerText='';
-    window.g7T = Math.random()>0.5?'L':'R'; document.getElementById('g7-cmd').innerText = window.g7T==='L'?'👆 ปัดโซนสีแดง!':'👆 ปัดโซนสีน้ำเงิน!'; document.getElementById('g7-cmd').style.color = window.g7T==='L'?'#ff4757':'#1e90ff';
+
+  // แก้ฟังก์ชันหยุดกล้องให้ตรงกับ Otago Tracker
+  function stopWebcam() { 
+    if(otagoCam){ otagoCam.stop(); otagoCam = null; } 
+    if(otagoPose){ otagoPose.close(); otagoPose = null; } 
   }
 
   /* =====================================================
@@ -299,8 +504,8 @@
     g8Tar=1; document.getElementById('g8-t').innerText=g8Tar; document.getElementById('g8-res').style.display='none'; document.getElementById('g8-msg').innerText='';
     let t0 = Date.now(); clearInterval(g8Timer);
     g8Timer = setInterval(() => { document.getElementById('g8-time').innerText = ((Date.now()-t0)/1000).toFixed(1); }, 100);
-    let nums = Array.from({length:9},(_,i)=>i+1); nums.push(10); nums.sort(()=>Math.random()-0.5); // Grid 3x3 + 1? Make it 10 items.
-    let b = document.getElementById('g8-b'); b.innerHTML=''; b.style.gridTemplateColumns = 'repeat(3,1fr)'; // 3 columns, 10 items will make last row 1 item. (or 4,3,3)
+    let nums = Array.from({length:9},(_,i)=>i+1); nums.push(10); nums.sort(()=>Math.random()-0.5); 
+    let b = document.getElementById('g8-b'); b.innerHTML=''; b.style.gridTemplateColumns = 'repeat(3,1fr)';
     nums.forEach(n => {
       let t = document.createElement('div'); t.className='tile'; t.style.fontSize='30px'; t.style.borderRadius='50%'; t.innerText=n;
       t.onclick = () => {
