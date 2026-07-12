@@ -1,1 +1,389 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ศูนย์รวมมินิเกมฝึกสมอง 11 เกม</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb); background-size: 400% 400%; animation: gradientBG 15s ease infinite; font-family: 'Kanit', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 60px; color: #4a4a4a; overflow-x: hidden; }
+  @keyframes gradientBG { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+  h1 { color: #ff4757; margin: 0 0 8px; font-size: 30px; text-align: center; font-weight: 800; text-shadow: 2px 2px 0px #ffffff; }
+  p.sub { color: #57606f; margin: 0 0 20px; text-align: center; font-size: 15px; font-weight: 600; }
+  .hidden { display: none !important; }
+  .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+  
+  /* Menu */
+  #menuScreen { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 14px; }
+  .game-card { padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 16px; transition: all 0.2s ease; }
+  .game-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.15); background: rgba(255, 255, 255, 0.95); }
+  .game-card .icon { font-size: 38px; }
+  .game-card .title { font-size: 18px; font-weight: 800; color: #2f3542; margin: 0 0 2px; }
+  .game-card .desc { font-size: 13px; color: #747d8c; margin: 0; line-height: 1.3; }
+  .back-btn { align-self: flex-start; margin-bottom: 16px; padding: 8px 20px; font-size: 15px; font-weight: 600; border: none; border-radius: 30px; background: rgba(255,255,255,0.7); color: #57606f; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  
+  /* General Game UI */
+  .hud { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 20px; }
+  .hud-item { background: #ffffff; padding: 6px 14px; border-radius: 30px; font-weight: 800; font-size: 14px; color: #747d8c; }
+  .hud-item span.value { color: #ff4757; }
+  .message-box { margin-top: 16px; font-size: 18px; font-weight: 800; min-height: 28px; color: #2f3542; text-align: center; width: 100%; }
+  .action-btn { margin-top: 16px; padding: 12px 28px; font-size: 16px; font-weight: 800; font-family: 'Kanit'; border: none; border-radius: 30px; color: white; cursor: pointer; display: none; box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+  .action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2) !important; }
+  .next-btn { background: #1e90ff; box-shadow: 0 6px 0 #3742fa; }
+  .restart-btn { background: #ff4757; box-shadow: 0 6px 0 #ff6b81; }
 
+  /* Generic Grid */
+  .grid-board { display: grid; gap: 10px; width: 100%; max-width: 400px; margin: 0 auto; }
+  .tile { aspect-ratio: 1/1; background: #fff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 40px; cursor: pointer; box-shadow: 0 6px 0 #dfe4ea; user-select: none; font-weight: bold; color: #2f3542; }
+  .tile:active { transform: translateY(4px); box-shadow: 0 2px 0 #dfe4ea; }
+
+  /* Specific Games */
+  #stroopWord { font-size: 60px; font-weight: 800; margin: 20px 0; text-align: center; }
+  .color-btn { padding: 16px 0; border: none; border-radius: 16px; font-size: 16px; font-weight: 800; color: white; cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+  .color-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  #camContainer { position: relative; width: 100%; max-width: 400px; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; background: #000; margin: 10px auto; }
+  #webcam, #output_canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; }
+  .cam-zone { position: absolute; top: 20%; width: 25%; height: 60%; border-radius: 12px; border: 4px solid rgba(255,255,255,0.5); z-index: 2; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+  .word-btn { background: #fff; border: 2px solid #1e90ff; color: #1e90ff; padding: 14px; border-radius: 16px; font-size: 20px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
+  .path-tile { background: #ced6e0; transition: background 0.2s; }
+  .path-active { background: #ff4757 !important; }
+</style>
+</head>
+<body>
+
+<div id="menuScreen">
+  <h1>🧠 มินิเกมผู้สูงวัย (11 เกม)</h1>
+  <p class="sub">เลือกเกมเพื่อฝึกสมองและร่างกาย!</p>
+  <div id="menuList"></div>
+</div>
+
+<div id="gameScreenTemplate" class="hidden" style="width:100%; max-width:500px; flex-direction:column; align-items:center;">
+  <button class="back-btn" onclick="goTo('menu')">◀ กลับหน้าเมนู</button>
+  <div class="glass-panel" style="padding: 24px; width: 100%; display: flex; flex-direction: column; align-items: center;" id="gameContainer">
+    </div>
+</div>
+
+<script>
+  /* ============ Audio System ============ */
+  let audioCtx;
+  function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); }
+  function playSound(type, param=0) {
+    if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+    if(type==='click') { osc.type='square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(800, now+0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.1); osc.start(now); osc.stop(now+0.1); }
+    else if(type==='correct') { osc.type='sine'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(783.99, now+0.1); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.3); osc.start(now); osc.stop(now+0.3); }
+    else if(type==='wrong') { osc.type='sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(100, now+0.2); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.2); osc.start(now); osc.stop(now+0.2); }
+    else if(type==='gameover') { osc.type='triangle'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(200, now+0.5); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.5); osc.start(now); osc.stop(now+0.5); }
+  }
+
+  function getHearts(lives) { return '❤️'.repeat(Math.max(lives,0)) + '🖤'.repeat(3 - Math.max(lives,0)); }
+
+  /* ============ Menu Data ============ */
+  const gamesList = [
+    {id:'1', ic:'🔍', t:'จับผิดรูปภาพ', d:'ฝึกสายตา หารูปที่ต่างจากพวก'},
+    {id:'2', ic:'🌈', t:'Stroop Test', d:'ฝึกสมอง เลือกสีให้ตรงกับสีอักษร'},
+    {id:'3', ic:'🃏', t:'จับคู่ความจำ', d:'ฝึกความจำ เปิดการ์ดหาคู่เหมือน'},
+    {id:'4', ic:'🔔', t:'จดจำลำดับสี', d:'ฝึกสมาธิ กดสีตามลำดับ'},
+    {id:'5', ic:'🧺', t:'แยกหมวดหมู่', d:'ฝึกตัดสินใจ ของกินหรือของใช้'},
+    {id:'6', ic:'➕', t:'คณิตคิดเพลิน', d:'ฝึกการคำนวณ บวกและลบเลขง่ายๆ'},
+    {id:'7', ic:'✋', t:'AI สแกนฝ่ามือ', d:'ฝึกกายภาพ ปัดสีตามสั่ง (เปิดกล้อง)'},
+    {id:'8', ic:'🔢', t:'เรียงเลขไว', d:'ฝึกกวาดสายตา กดเลข 1-10 ตามลำดับ'},
+    {id:'9', ic:'🔎', t:'ล่าหาไอเทม', d:'หาสิ่งของเป้าหมายจากของมากมาย'},
+    {id:'10', ic:'🗺️', t:'จำเส้นทาง', d:'จดจำเส้นทางที่ปรากฏและกดตาม'},
+    {id:'11', ic:'🔠', t:'เติมคำปริศนา', d:'ดึงคลังคำศัพท์ เติมตัวอักษรให้สมบูรณ์'}
+  ];
+
+  const menuListEl = document.getElementById('menuList');
+  gamesList.forEach(g => {
+    let div = document.createElement('div');
+    div.className = 'game-card glass-panel';
+    div.onclick = () => goTo('game'+g.id);
+    div.innerHTML = `<div class="icon">${g.ic}</div><div><p class="title">${g.t}</p><p class="desc">${g.d}</p></div>`;
+    menuListEl.appendChild(div);
+  });
+
+  function goTo(screen) {
+    initAudio(); playSound('click');
+    if(typeof stopWebcam === 'function') stopWebcam();
+    if(screen === 'menu') {
+      document.getElementById('menuScreen').classList.remove('hidden');
+      document.getElementById('gameScreenTemplate').classList.add('hidden');
+      return;
+    }
+    document.getElementById('menuScreen').classList.add('hidden');
+    document.getElementById('gameScreenTemplate').classList.remove('hidden');
+    document.getElementById('gameScreenTemplate').style.display = 'flex';
+    window['initGame'+screen.replace('game','')]();
+  }
+
+  /* =====================================================
+     G1: จับผิดรูปภาพ
+  ===================================================== */
+  let g1Round, g1Score, g1Lives;
+  function initGame1() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🔍 จับผิดรูป</h1><div class="hud"><div class="hud-item">ด่าน <span id="g1-r"></span></div><div class="hud-item">แต้ม <span id="g1-s"></span></div><div class="hud-item">ชีวิต <span id="g1-l"></span></div></div><div id="g1-b" class="grid-board"></div><div class="message-box" id="g1-msg"></div><button class="action-btn next-btn" id="g1-n">ด่านต่อไป ▶</button><button class="action-btn restart-btn" id="g1-res">เล่นใหม่ 🔄</button>`;
+    document.getElementById('g1-n').onclick = () => { playSound('click'); g1Round++; renderG1(); };
+    document.getElementById('g1-res').onclick = () => { playSound('click'); g1Round=1; g1Score=0; g1Lives=3; renderG1(); };
+    g1Round=1; g1Score=0; g1Lives=3; renderG1();
+  }
+  function renderG1() {
+    let locked = false; document.getElementById('g1-r').innerText = g1Round; document.getElementById('g1-s').innerText = g1Score; document.getElementById('g1-l').innerText = getHearts(g1Lives); document.getElementById('g1-msg').innerText = ''; document.getElementById('g1-n').style.display='none'; document.getElementById('g1-res').style.display='none';
+    const b = document.getElementById('g1-b'); b.innerHTML = '';
+    let size = g1Round<=2?4: (g1Round<=5?6:9); b.style.gridTemplateColumns = `repeat(${size<=4?2:3}, 1fr)`;
+    const pairs = [['🍎','🍅'],['🐶','🐻'],['☀️','⭐'],['🚗','🚕']]; let p = pairs[Math.floor(Math.random()*pairs.length)]; let odd = Math.floor(Math.random()*size);
+    for(let i=0; i<size; i++) {
+      let t = document.createElement('div'); t.className = 'tile'; t.innerText = i===odd?p[1]:p[0];
+      t.onclick = () => {
+        if(locked) return;
+        if(i===odd) { playSound('correct'); locked=true; t.style.background='#7bed9f'; g1Score+=10; document.getElementById('g1-s').innerText=g1Score; document.getElementById('g1-msg').innerText='🎉 ถูกต้อง!'; document.getElementById('g1-n').style.display='inline-block'; }
+        else { playSound('wrong'); t.style.background='#ff7f50'; g1Lives--; document.getElementById('g1-l').innerText=getHearts(g1Lives); if(g1Lives<=0) { locked=true; document.getElementById('g1-msg').innerText=`💥 จบเกม! ได้ ${g1Score} แต้ม`; document.getElementById('g1-res').style.display='inline-block'; } else setTimeout(()=>t.style.background='#fff', 400); }
+      }; b.appendChild(t);
+    }
+  }
+
+  /* =====================================================
+     G2: Stroop Test
+  ===================================================== */
+  let g2Score, g2Lives;
+  function initGame2() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🌈 Stroop Test</h1><div class="hud"><div class="hud-item">แต้ม <span id="g2-s"></span></div><div class="hud-item">ชีวิต <span id="g2-l"></span></div></div><div id="stroopWord"></div><div id="g2-opts" class="grid-board" style="grid-template-columns:1fr 1fr 1fr"></div><div class="message-box" id="g2-msg"></div><button class="action-btn restart-btn" id="g2-res">เล่นใหม่ 🔄</button>`;
+    document.getElementById('g2-res').onclick = () => { playSound('click'); g2Score=0; g2Lives=3; renderG2(); };
+    g2Score=0; g2Lives=3; renderG2();
+  }
+  function renderG2() {
+    document.getElementById('g2-s').innerText = g2Score; document.getElementById('g2-l').innerText = getHearts(g2Lives); document.getElementById('g2-msg').innerText = ''; document.getElementById('g2-res').style.display='none';
+    const cols = [{n:'แดง',c:'#ff4757'},{n:'เขียว',c:'#2ed573'},{n:'น้ำเงิน',c:'#1e90ff'},{n:'เหลือง',c:'#ffa502'},{n:'ม่วง',c:'#9c88ff'},{n:'ดำ',c:'#2f3542'}];
+    let w = cols[Math.floor(Math.random()*cols.length)]; let c = cols[Math.floor(Math.random()*cols.length)];
+    if(Math.random()<0.8 && w.n===c.n) c = cols[(cols.indexOf(c)+1)%cols.length];
+    document.getElementById('stroopWord').innerText = w.n; document.getElementById('stroopWord').style.color = c.c;
+    let opts = document.getElementById('g2-opts'); opts.innerHTML = ''; opts.style.pointerEvents='auto';
+    [...cols].sort(()=>Math.random()-0.5).forEach(col => {
+      let btn = document.createElement('button'); btn.className='color-btn'; btn.innerText=col.n; btn.style.background=col.c;
+      btn.onclick = () => {
+        if(opts.style.pointerEvents==='none') return; opts.style.pointerEvents='none';
+        if(col.c===c.c) { playSound('correct'); g2Score+=10; document.getElementById('g2-s').innerText=g2Score; document.getElementById('g2-msg').innerText='✨ ถูกต้อง!'; setTimeout(renderG2, 800); }
+        else { playSound('wrong'); g2Lives--; document.getElementById('g2-l').innerText=getHearts(g2Lives); if(g2Lives<=0){ document.getElementById('g2-msg').innerText=`💥 จบเกม! ได้ ${g2Score}`; document.getElementById('g2-res').style.display='inline-block';} else { document.getElementById('g2-msg').innerText='❌ เลือกสีอักษรนะ!'; setTimeout(renderG2, 1000); } }
+      }; opts.appendChild(btn);
+    });
+  }
+
+  /* =====================================================
+     G3: จับคู่
+  ===================================================== */
+  let g3Flipped, g3Score;
+  function initGame3() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🃏 จับคู่</h1><div class="hud"><div class="hud-item">คู่ <span id="g3-s"></span>/6</div></div><div id="g3-b" class="grid-board" style="grid-template-columns:repeat(4,1fr)"></div><div class="message-box" id="g3-msg"></div><button class="action-btn restart-btn" id="g3-res">เล่นใหม่ 🔄</button>`;
+    document.getElementById('g3-res').onclick = () => { playSound('click'); startG3(); }; startG3();
+  }
+  function startG3() {
+    g3Flipped=[]; g3Score=0; document.getElementById('g3-s').innerText=g3Score; document.getElementById('g3-msg').innerText=''; document.getElementById('g3-res').style.display='none';
+    let b = document.getElementById('g3-b'); b.innerHTML='';
+    let icons = ['🐶','🐱','🐭','🐹','🐰','🦊']; let cards = [...icons,...icons].sort(()=>Math.random()-0.5);
+    cards.forEach((ic,i) => {
+      let c = document.createElement('div'); c.className='tile'; c.style.background='#ff9f43'; c.innerText='?';
+      c.onclick = () => {
+        if(g3Flipped.length===2 || c.dataset.up) return; playSound('click'); c.dataset.up='1'; c.innerText=ic; c.style.background='#fff'; g3Flipped.push({c,ic});
+        if(g3Flipped.length===2) setTimeout(() => {
+          if(g3Flipped[0].ic===g3Flipped[1].ic) { playSound('correct'); g3Flipped[0].c.style.background='#7bed9f'; g3Flipped[1].c.style.background='#7bed9f'; g3Score++; document.getElementById('g3-s').innerText=g3Score; if(g3Score===6){ playSound('gameover'); document.getElementById('g3-msg').innerText='🎉 ชนะแล้ว!'; document.getElementById('g3-res').style.display='inline-block'; } }
+          else { playSound('wrong'); g3Flipped[0].c.dataset.up=''; g3Flipped[0].c.innerText='?'; g3Flipped[0].c.style.background='#ff9f43'; g3Flipped[1].c.dataset.up=''; g3Flipped[1].c.innerText='?'; g3Flipped[1].c.style.background='#ff9f43'; }
+          g3Flipped=[];
+        }, 800);
+      }; b.appendChild(c);
+    });
+  }
+
+  /* =====================================================
+     G4: Simon Says
+  ===================================================== */
+  let g4Seq, g4Player, g4Score; const g4Cols = ['#ff4757','#2ed573','#1e90ff','#ffa502'];
+  function initGame4() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🔔 ลำดับสี</h1><div class="hud"><div class="hud-item">แต้ม <span id="g4-s">0</span></div></div><div id="g4-b" class="grid-board" style="grid-template-columns:1fr 1fr; max-width:250px;"></div><div class="message-box" id="g4-msg"></div><button class="action-btn next-btn" id="g4-start">เริ่มเกม ▶</button><button class="action-btn restart-btn" id="g4-res">เล่นใหม่ 🔄</button>`;
+    let b = document.getElementById('g4-b');
+    for(let i=0; i<4; i++){ let btn = document.createElement('button'); btn.className='tile'; btn.style.background=g4Cols[i]; btn.id='g4-btn'+i; btn.onclick=()=>g4Click(i); b.appendChild(btn); }
+    document.getElementById('g4-start').onclick=()=>{ playSound('click'); document.getElementById('g4-start').style.display='none'; g4Seq=[]; g4Score=0; document.getElementById('g4-s').innerText=0; g4Next(); };
+    document.getElementById('g4-res').onclick=()=>{ playSound('click'); document.getElementById('g4-res').style.display='none'; g4Seq=[]; g4Score=0; document.getElementById('g4-s').innerText=0; g4Next(); };
+    document.getElementById('g4-start').style.display='inline-block';
+  }
+  function g4Next() {
+    g4Player=[]; g4Seq.push(Math.floor(Math.random()*4)); document.getElementById('g4-msg').innerText='👀 ดูให้ดี...'; document.getElementById('g4-b').style.pointerEvents='none';
+    let i=0; let int = setInterval(()=>{
+      let id = g4Seq[i]; playSound('simon',id); let btn = document.getElementById('g4-btn'+id); btn.style.opacity=0.5; setTimeout(()=>btn.style.opacity=1,400);
+      i++; if(i>=g4Seq.length){ clearInterval(int); setTimeout(()=>{ document.getElementById('g4-msg').innerText='👆 ตาคุณแล้ว!'; document.getElementById('g4-b').style.pointerEvents='auto'; }, 600); }
+    }, 800);
+  }
+  function g4Click(id) {
+    playSound('simon',id); g4Player.push(id); let idx = g4Player.length-1;
+    if(g4Player[idx] !== g4Seq[idx]){ playSound('gameover'); document.getElementById('g4-b').style.pointerEvents='none'; document.getElementById('g4-msg').innerText=`💥 พลาด! ได้ ${g4Score} แต้ม`; document.getElementById('g4-res').style.display='inline-block'; return; }
+    if(g4Player.length === g4Seq.length){ g4Score++; document.getElementById('g4-s').innerText=g4Score; document.getElementById('g4-b').style.pointerEvents='none'; document.getElementById('g4-msg').innerText='✨ เยี่ยม!'; setTimeout(g4Next, 1000); }
+  }
+
+  /* =====================================================
+     G5: แยกหมวด
+  ===================================================== */
+  let g5S, g5L; const g5It = [{i:'🍎',c:'e'},{i:'🍔',c:'e'},{i:'👕',c:'u'},{i:'📱',c:'u'}]; let g5C;
+  function initGame5() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🧺 แยกหมวด</h1><div class="hud"><div class="hud-item">แต้ม <span id="g5-s"></span></div><div class="hud-item">ชีวิต <span id="g5-l"></span></div></div><div id="g5-it" style="font-size:80px; margin:20px 0;"></div><div style="display:flex; gap:10px; width:100%;"><button class="color-btn" style="flex:1; background:#e15f41;" onclick="g5Check('e')">🍽️ ของกิน</button><button class="color-btn" style="flex:1; background:#3dc1d3;" onclick="g5Check('u')">🛠️ ของใช้</button></div><div class="message-box" id="g5-msg"></div><button class="action-btn restart-btn" id="g5-res" onclick="playSound('click'); g5S=0; g5L=3; g5N();">เล่นใหม่ 🔄</button>`;
+    g5S=0; g5L=3; g5N();
+  }
+  function g5N() { document.getElementById('g5-res').style.display='none'; document.getElementById('g5-s').innerText=g5S; document.getElementById('g5-l').innerText=getHearts(g5L); document.getElementById('g5-msg').innerText=''; g5C=g5It[Math.floor(Math.random()*g5It.length)]; document.getElementById('g5-it').innerText=g5C.i; }
+  function g5Check(ans) {
+    if(ans===g5C.c){ playSound('correct'); g5S+=10; document.getElementById('g5-msg').innerText='✅ ถูก!'; setTimeout(g5N,600); }
+    else { playSound('wrong'); g5L--; if(g5L<=0){ playSound('gameover'); document.getElementById('g5-l').innerText=getHearts(0); document.getElementById('g5-msg').innerText=`💥 จบ! ได้ ${g5S}`; document.getElementById('g5-res').style.display='inline-block'; } else { document.getElementById('g5-l').innerText=getHearts(g5L); document.getElementById('g5-msg').innerText='❌ ผิดหมวด!'; setTimeout(g5N,1000); } }
+  }
+
+  /* =====================================================
+     G6: คณิต
+  ===================================================== */
+  let g6S, g6L, g6A;
+  function initGame6() {
+    document.getElementById('gameContainer').innerHTML = `<h1>➕ คณิตคิดเพลิน</h1><div class="hud"><div class="hud-item">แต้ม <span id="g6-s"></span></div><div class="hud-item">ชีวิต <span id="g6-l"></span></div></div><div id="g6-eq" style="font-size:50px; font-weight:bold; margin:20px 0;"></div><div id="g6-opts" class="grid-board" style="grid-template-columns:1fr 1fr 1fr"></div><div class="message-box" id="g6-msg"></div><button class="action-btn restart-btn" id="g6-res" onclick="playSound('click'); g6S=0; g6L=3; g6N();">เล่นใหม่ 🔄</button>`;
+    g6S=0; g6L=3; g6N();
+  }
+  function g6N() {
+    document.getElementById('g6-res').style.display='none'; document.getElementById('g6-s').innerText=g6S; document.getElementById('g6-l').innerText=getHearts(g6L); document.getElementById('g6-msg').innerText='';
+    let a=Math.floor(Math.random()*10)+1; let b=Math.floor(Math.random()*10)+1; let add=Math.random()>0.5; if(!add && a<b) [a,b]=[b,a]; g6A = add?a+b:a-b;
+    document.getElementById('g6-eq').innerText = `${a} ${add?'+':'-'} ${b} = ?`;
+    let opts = [g6A, g6A+1, g6A-1].map(v=>v<0?v+3:v).sort(()=>Math.random()-0.5);
+    let oDiv = document.getElementById('g6-opts'); oDiv.innerHTML=''; oDiv.style.pointerEvents='auto';
+    opts.forEach(o => { let btn=document.createElement('button'); btn.className='color-btn'; btn.style.background='#1dd1a1'; btn.innerText=o; btn.onclick=()=>{ if(oDiv.style.pointerEvents==='none')return; oDiv.style.pointerEvents='none'; if(o===g6A){ playSound('correct'); btn.style.background='#2ed573'; g6S+=10; document.getElementById('g6-msg').innerText='🎉 ถูกต้อง!'; setTimeout(g6N,800); } else { playSound('wrong'); btn.style.background='#ff4757'; g6L--; if(g6L<=0){ playSound('gameover'); document.getElementById('g6-l').innerText=getHearts(0); document.getElementById('g6-msg').innerText=`💥 จบ! ได้ ${g6S}`; document.getElementById('g6-res').style.display='inline-block'; } else { document.getElementById('g6-l').innerText=getHearts(g6L); document.getElementById('g6-msg').innerText='❌ ผิดจ้า!'; setTimeout(()=>{btn.style.background='#1dd1a1'; oDiv.style.pointerEvents='auto';},1000); } } }; oDiv.appendChild(btn); });
+  }
+
+  /* =====================================================
+     G7: AI มือ
+  ===================================================== */
+  let g7Cam, g7Hands;
+  function initGame7() {
+    document.getElementById('gameContainer').innerHTML = `<h1>✋ AI มือ</h1><div class="hud"><div class="hud-item">แต้ม <span id="g7-s"></span></div><div class="hud-item">ชีวิต <span id="g7-l"></span></div></div><div id="g7-cmd" style="font-size:24px; color:#ff4757; font-weight:bold; margin-bottom:10px;">รอโหลด AI...</div><div id="camContainer"><video id="webcam" autoplay playsinline></video><canvas id="output_canvas"></canvas><div id="zL" class="cam-zone" style="left:5%; background:rgba(255,71,87,0.4)">🔴</div><div id="zR" class="cam-zone" style="right:5%; background:rgba(30,144,255,0.4)">🔵</div></div><div class="message-box" id="g7-msg"></div><button class="action-btn next-btn" id="g7-start">เปิดกล้อง ▶</button><button class="action-btn restart-btn" id="g7-res">เล่นใหม่ 🔄</button>`;
+    document.getElementById('g7-start').onclick = () => { playSound('click'); document.getElementById('g7-start').style.display='none'; startG7Cam(); };
+    document.getElementById('g7-res').onclick = () => { playSound('click'); document.getElementById('g7-res').style.display='none'; window.g7S=0; window.g7L=3; nextG7(); };
+    document.getElementById('g7-start').style.display = 'inline-block';
+  }
+  function startG7Cam() {
+    const vid = document.getElementById('webcam'); const cvs = document.getElementById('output_canvas'); const ctx = cvs.getContext('2d');
+    g7Hands = new Hands({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    g7Hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.5, minTrackingConfidence:0.5});
+    g7Hands.onResults(res => {
+      ctx.clearRect(0,0,cvs.width,cvs.height);
+      if(res.multiHandLandmarks && res.multiHandLandmarks[0] && !window.g7Lock) {
+        drawConnectors(ctx, res.multiHandLandmarks[0], HAND_CONNECTIONS, {color:'#0f0', lineWidth:2}); drawLandmarks(ctx, res.multiHandLandmarks[0], {color:'#f00', lineWidth:1, radius:2});
+        let x = res.multiHandLandmarks[0][8].x; let pick = x>0.75?'L':(x<0.25?'R':null);
+        if(pick) {
+          window.g7Lock=true;
+          if(pick===window.g7T) { playSound('correct'); window.g7S+=10; document.getElementById('g7-s').innerText=window.g7S; document.getElementById('g7-msg').innerText='✨ เยี่ยม!'; document.getElementById('z'+pick).style.background='rgba(46,213,115,0.8)'; setTimeout(nextG7,1200); }
+          else { playSound('wrong'); window.g7L--; document.getElementById('g7-l').innerText=getHearts(window.g7L); document.getElementById('z'+pick).style.background='rgba(0,0,0,0.8)'; if(window.g7L<=0) { playSound('gameover'); document.getElementById('g7-msg').innerText=`💥 จบ! ได้ ${window.g7S}`; document.getElementById('g7-res').style.display='inline-block'; } else { document.getElementById('g7-msg').innerText='❌ ผิดฝั่ง!'; setTimeout(nextG7,1500); } }
+        }
+      }
+    });
+    g7Cam = new Camera(vid, { onFrame: async () => { await g7Hands.send({image: vid}); }, width: 320, height: 240 });
+    g7Cam.start().then(()=>{ setTimeout(()=>{ window.g7S=0; window.g7L=3; nextG7(); }, 2000); });
+  }
+  function stopWebcam() { if(g7Cam){ g7Cam.stop(); g7Cam=null; } if(g7Hands){ g7Hands.close(); g7Hands=null; } }
+  function nextG7() {
+    window.g7Lock=false; document.getElementById('zL').style.background='rgba(255,71,87,0.4)'; document.getElementById('zR').style.background='rgba(30,144,255,0.4)'; document.getElementById('g7-s').innerText=window.g7S; document.getElementById('g7-l').innerText=getHearts(window.g7L); document.getElementById('g7-msg').innerText='';
+    window.g7T = Math.random()>0.5?'L':'R'; document.getElementById('g7-cmd').innerText = window.g7T==='L'?'👆 ปัดโซนสีแดง!':'👆 ปัดโซนสีน้ำเงิน!'; document.getElementById('g7-cmd').style.color = window.g7T==='L'?'#ff4757':'#1e90ff';
+  }
+
+  /* =====================================================
+     G8: เรียงเลขไว
+  ===================================================== */
+  let g8Tar, g8Timer;
+  function initGame8() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🔢 เรียงเลขไว</h1><p class="sub">กดปุ่ม 1 ถึง 10 เรียงตามลำดับให้ไวที่สุด</p><div class="hud"><div class="hud-item">หาเลข: <span id="g8-t" class="value" style="font-size:24px;">1</span></div><div class="hud-item">เวลา <span id="g8-time">0.0</span> วิ</div></div><div id="g8-b" class="grid-board" style="grid-template-columns:repeat(3,1fr); gap:15px; margin-bottom:20px;"></div><div class="message-box" id="g8-msg"></div><button class="action-btn restart-btn" id="g8-res" onclick="playSound('click'); startG8();">เล่นอีกครั้ง 🔄</button>`;
+    startG8();
+  }
+  function startG8() {
+    g8Tar=1; document.getElementById('g8-t').innerText=g8Tar; document.getElementById('g8-res').style.display='none'; document.getElementById('g8-msg').innerText='';
+    let t0 = Date.now(); clearInterval(g8Timer);
+    g8Timer = setInterval(() => { document.getElementById('g8-time').innerText = ((Date.now()-t0)/1000).toFixed(1); }, 100);
+    let nums = Array.from({length:9},(_,i)=>i+1); nums.push(10); nums.sort(()=>Math.random()-0.5); // Grid 3x3 + 1? Make it 10 items.
+    let b = document.getElementById('g8-b'); b.innerHTML=''; b.style.gridTemplateColumns = 'repeat(3,1fr)'; // 3 columns, 10 items will make last row 1 item. (or 4,3,3)
+    nums.forEach(n => {
+      let t = document.createElement('div'); t.className='tile'; t.style.fontSize='30px'; t.style.borderRadius='50%'; t.innerText=n;
+      t.onclick = () => {
+        if(t.style.opacity==='0') return;
+        if(n===g8Tar) { playSound('click'); t.style.opacity='0'; g8Tar++; if(g8Tar>10) { clearInterval(g8Timer); playSound('correct'); document.getElementById('g8-msg').innerText='🎉 สุดยอด! คุณตาไวมาก'; document.getElementById('g8-res').style.display='inline-block'; } else document.getElementById('g8-t').innerText=g8Tar; }
+        else { playSound('wrong'); t.style.background='#ff7f50'; setTimeout(()=>t.style.background='#fff', 300); }
+      }; b.appendChild(t);
+    });
+  }
+
+  /* =====================================================
+     G9: ล่าหาไอเทม
+  ===================================================== */
+  let g9Round;
+  function initGame9() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🔎 ล่าหาไอเทม</h1><p class="sub">หาเป้าหมายที่แอบซ่อนอยู่ให้เจอ</p><div class="hud"><div class="hud-item">หา: <span id="g9-tar" class="value" style="font-size:30px;"></span></div></div><div id="g9-b" class="grid-board" style="grid-template-columns:repeat(5,1fr); gap:8px;"></div><div class="message-box" id="g9-msg"></div><button class="action-btn next-btn" id="g9-n" onclick="playSound('click'); g9Round++; startG9();">ด่านต่อไป ▶</button>`;
+    g9Round=1; startG9();
+  }
+  function startG9() {
+    document.getElementById('g9-n').style.display='none'; document.getElementById('g9-msg').innerText='';
+    let targets = ['🕶️','🍄','🦋','🍀','🍓']; let dists = ['👕','🎩','👟','🎒','🧢','🍎','🍊','🍇','🍉','🍌'];
+    let tar = targets[g9Round%targets.length]; document.getElementById('g9-tar').innerText=tar;
+    let b = document.getElementById('g9-b'); b.innerHTML='';
+    let items = Array(19).fill(0).map(()=>dists[Math.floor(Math.random()*dists.length)]); items.push(tar); items.sort(()=>Math.random()-0.5);
+    let locked = false;
+    items.forEach(it => {
+      let t = document.createElement('div'); t.className='tile'; t.style.fontSize='28px'; t.style.background='#f1f2f6'; t.innerText=it;
+      t.onclick = () => {
+        if(locked) return;
+        if(it===tar) { playSound('correct'); locked=true; t.style.background='#7bed9f'; document.getElementById('g9-msg').innerText='🎉 ตาดีมาก!'; document.getElementById('g9-n').style.display='inline-block'; }
+        else { playSound('wrong'); t.style.background='#ff7f50'; setTimeout(()=>t.style.background='#f1f2f6', 300); }
+      }; b.appendChild(t);
+    });
+  }
+
+  /* =====================================================
+     G10: จำเส้นทาง
+  ===================================================== */
+  let g10Seq, g10Player, g10Lvl;
+  function initGame10() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🗺️ จำเส้นทาง</h1><p class="sub">จำช่องที่กระพริบ แล้วกดตามลำดับ</p><div class="hud"><div class="hud-item">ด่าน <span id="g10-lvl"></span></div></div><div id="g10-b" class="grid-board" style="grid-template-columns:repeat(3,1fr); max-width:250px;"></div><div class="message-box" id="g10-msg"></div><button class="action-btn next-btn" id="g10-start" onclick="playSound('click'); this.style.display='none'; g10Next();">ดูโจทย์ 👁️</button><button class="action-btn restart-btn" id="g10-res" onclick="playSound('click'); g10Lvl=3; startG10();">เล่นใหม่ 🔄</button>`;
+    for(let i=0; i<9; i++) { let t = document.createElement('div'); t.className='tile path-tile'; t.id='g10-t'+i; t.onclick=()=>g10Click(i); document.getElementById('g10-b').appendChild(t); }
+    g10Lvl=3; startG10();
+  }
+  function startG10() { document.getElementById('g10-lvl').innerText=g10Lvl-2; document.getElementById('g10-res').style.display='none'; document.getElementById('g10-msg').innerText=''; g10Seq=[]; while(g10Seq.length<g10Lvl){ let n=Math.floor(Math.random()*9); if(g10Seq[g10Seq.length-1]!==n) g10Seq.push(n); } document.getElementById('g10-start').style.display='inline-block'; document.getElementById('g10-b').style.pointerEvents='none'; }
+  function g10Next() {
+    g10Player=[]; document.getElementById('g10-msg').innerText='👀 ดูให้ดี...'; document.getElementById('g10-b').style.pointerEvents='none';
+    let i=0; let int = setInterval(()=>{
+      playSound('click'); let t = document.getElementById('g10-t'+g10Seq[i]); t.classList.add('path-active'); setTimeout(()=>t.classList.remove('path-active'), 500);
+      i++; if(i>=g10Seq.length){ clearInterval(int); setTimeout(()=>{ document.getElementById('g10-msg').innerText='👆 ลากเส้นทางเลย!'; document.getElementById('g10-b').style.pointerEvents='auto'; }, 800); }
+    }, 900);
+  }
+  function g10Click(id) {
+    playSound('click'); let t = document.getElementById('g10-t'+id); t.classList.add('path-active'); setTimeout(()=>t.classList.remove('path-active'), 200);
+    g10Player.push(id); let idx = g10Player.length-1;
+    if(g10Player[idx] !== g10Seq[idx]){ playSound('gameover'); document.getElementById('g10-b').style.pointerEvents='none'; document.getElementById('g10-msg').innerText='💥 จำพลาดไปนิดนึง!'; document.getElementById('g10-res').style.display='inline-block'; return; }
+    if(g10Player.length === g10Seq.length){ playSound('correct'); document.getElementById('g10-b').style.pointerEvents='none'; document.getElementById('g10-msg').innerText='✨ ความจำเยี่ยม!'; g10Lvl++; setTimeout(startG10, 1500); }
+  }
+
+  /* =====================================================
+     G11: เติมคำปริศนา
+  ===================================================== */
+  let g11Data = [ {q:'ก _ ะ ท _', a:'กระทะ', c:['กระทะ','กระทง','กระทิง']}, {q:'โ _ ง เ รี ย _', a:'โรงเรียน', c:['วงเวียน','โรงเรียน','โรงเตี้ยม']}, {q:'น _ ฬิ ก _', a:'นาฬิกา', c:['นาฬิกา','ปาปริก้า','มาลิกา']}, {q:'สั _ ป ะ _ ด', a:'สับปะรด', c:['สัปปะหงก','สับปะรด','สับปะรังเค']} ];
+  let g11Q = 0;
+  function initGame11() {
+    document.getElementById('gameContainer').innerHTML = `<h1>🔠 เติมคำปริศนา</h1><p class="sub">เลือกคำตอบที่ถูกต้องเพื่อเติมคำที่แหว่งไป</p><div class="hud"><div class="hud-item">ข้อที่ <span id="g11-r">1</span>/4</div></div><div id="g11-q" style="font-size:48px; font-weight:bold; letter-spacing:8px; margin:20px 0; color:#2f3542; text-align:center;"></div><div id="g11-opts" style="width:100%; max-width:300px;"></div><div class="message-box" id="g11-msg"></div><button class="action-btn restart-btn" id="g11-res" onclick="playSound('click'); g11Q=0; startG11();">เล่นใหม่ 🔄</button>`;
+    g11Data.sort(()=>Math.random()-0.5); g11Q=0; startG11();
+  }
+  function startG11() {
+    if(g11Q>=g11Data.length) { playSound('gameover'); document.getElementById('g11-msg').innerText='🎉 จบเกม! คุณเก่งมาก'; document.getElementById('g11-res').style.display='inline-block'; return; }
+    document.getElementById('g11-res').style.display='none'; document.getElementById('g11-msg').innerText=''; document.getElementById('g11-r').innerText = (g11Q+1);
+    let d = g11Data[g11Q]; document.getElementById('g11-q').innerText = d.q;
+    let oDiv = document.getElementById('g11-opts'); oDiv.innerHTML=''; oDiv.style.pointerEvents='auto';
+    [...d.c].sort(()=>Math.random()-0.5).forEach(c => {
+      let b = document.createElement('button'); b.className='word-btn'; b.innerText=c;
+      b.onclick = () => {
+        if(oDiv.style.pointerEvents==='none') return; oDiv.style.pointerEvents='none';
+        if(c===d.a) { playSound('correct'); b.style.background='#1e90ff'; b.style.color='#fff'; document.getElementById('g11-msg').innerText='✅ ถูกต้อง!'; g11Q++; setTimeout(startG11, 1000); }
+        else { playSound('wrong'); b.style.background='#ff4757'; b.style.color='#fff'; b.style.borderColor='#ff4757'; document.getElementById('g11-msg').innerText='❌ ยังไม่ใช่ ลองใหม่นะ'; setTimeout(()=>{b.style.background='#fff'; b.style.color='#1e90ff'; b.style.borderColor='#1e90ff'; oDiv.style.pointerEvents='auto';}, 1000); }
+      }; oDiv.appendChild(b);
+    });
+  }
+
+</script>
+</body>
+</html>
